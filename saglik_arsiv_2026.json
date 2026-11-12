@@ -1,0 +1,35 @@
+[
+    {
+        "id": 1,
+        "category": "mevzuat",
+        "categoryLabel": "Mevzuat Yeniliği",
+        "badgeColor": "bg-blue-50 text-blue-700 border-blue-200",
+        "title": "Türkiye Sağlık Enstitüleri Başkanlığı Bünyesinde Oluşturulacak Bilim Kurulları Hakkında Yönetmelikte Değişiklik Yapılmasına Dair Yönetmelik",
+        "institution": "Türkiye Sağlık Enstitüleri Başkanlığı (TÜSEB)",
+        "summary": "Bilim kurullarının çalışma usul ve esasları ile üye görev sürelerine dair güncellemeler yapılmıştır.",
+        "date": "2026-11-10",
+        "url": "https://www.resmigazete.gov.tr/"
+    },
+    {
+        "id": 2,
+        "category": "mevzuat",
+        "categoryLabel": "Mevzuat Yeniliği",
+        "badgeColor": "bg-blue-50 text-blue-700 border-blue-200",
+        "title": "Türkiye Kanser Enstitüsü Yönetmeliğinde Değişiklik Yapılmasına Dair Yönetmelik",
+        "institution": "Türkiye Sağlık Enstitüleri Başkanlığı (TÜSEB) / Türkiye Kanser Enstitüsü",
+        "summary": "Türkiye Kanser Enstitüsü'nün teşkilatı, görevleri ve araştırma projelerinin desteklenme süreçlerine dair güncellemeler yapılmıştır.",
+        "date": "2026-11-12",
+        "url": "https://www.resmigazete.gov.tr/"
+    },
+    {
+        "id": 3,
+        "category": "mevzuat",
+        "categoryLabel": "Mevzuat Yeniliği",
+        "badgeColor": "bg-blue-50 text-blue-700 border-blue-200",
+        "title": "Beşeri Tıbbi Ürünler İmalathaneleri Yönetmeliğinde Değişiklik Yapılmasına Dair Yönetmelik",
+        "institution": "Türkiye İlaç ve Tıbbi Cihaz Kurumu (TİCK) / Sağlık Bakanlığı",
+        "summary": "Beşeri tıbbi ürün imalathanelerinin ruhsatlandırılması, fiziki şartları ve GMP standartlarına dair güncellemeler yapılmıştır.",
+        "date": "2026-11-12",
+        "url": "https://www.resmigazete.gov.tr/"
+    }
+]
