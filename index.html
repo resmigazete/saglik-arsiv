@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#0f766e">
+<title>RG Sağlık Arşivi</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body class="bg-slate-100 text-slate-800 min-h-screen font-sans">
+<div class="w-full max-w-md mx-auto bg-slate-50 min-h-screen shadow-xl flex flex-col">
+
+  <header class="bg-teal-700 text-white p-4 shadow-md sticky top-0 z-40">
+    <div class="flex justify-between items-center mb-3">
+      <h1 class="text-sm font-bold flex items-center gap-1.5"><i class="fa-solid fa-hospital"></i> RG Sağlık Arşivi</h1>
+      <div class="flex gap-1.5 items-center">
+        <button id="btnRefresh" class="bg-teal-800 px-2 py-1.5 rounded-lg text-xs font-semibold" title="GitHub'dan güncelle"><i class="fa-solid fa-rotate"></i></button>
+        <button id="btnAdd" class="bg-teal-800 px-2 py-1.5 rounded-lg text-xs font-semibold"><i class="fa-solid fa-plus"></i> Ekle</button>
+        <label class="bg-teal-800 px-2 py-1.5 rounded-lg text-xs font-semibold cursor-pointer" title="JSON yükle (mevcut arşive eklenir)">
+          <i class="fa-solid fa-upload"></i><input type="file" id="importFile" accept=".json" class="hidden">
+        </label>
+        <button id="btnExport" class="bg-teal-800 px-2 py-1.5 rounded-lg text-xs font-semibold" title="Yedekle (indir)"><i class="fa-solid fa-download"></i></button>
+      </div>
+    </div>
+    <input type="search" id="searchInput" placeholder="tüseb, kanser, atama, 10 kasım…" class="w-full px-3 py-2 rounded-lg bg-white text-slate-800 text-xs focus:outline-none focus:ring-2 focus:ring-teal-300">
+    <div class="flex items-center gap-1.5 mt-2 text-xs">
+      <input type="date" id="dateFrom" class="flex-1 min-w-0 p-1.5 rounded bg-white text-slate-800" aria-label="Başlangıç">
+      <span class="text-teal-100">–</span>
+      <input type="date" id="dateTo" class="flex-1 min-w-0 p-1.5 rounded bg-white text-slate-800" aria-label="Bitiş">
+      <button id="btnClearDates" class="bg-teal-900 px-2 py-1.5 rounded text-[10px]">Tümü</button>
+    </div>
+  </header>
+
+  <nav class="bg-white px-4 py-3 border-b border-slate-200 flex gap-2 overflow-x-auto whitespace-nowrap" id="catBar"></nav>
+  <div id="status" class="px-4 pt-3 text-[10px] text-slate-400"></div>
+  <main id="list" class="p-4 flex-1 space-y-3"></main>
+  <footer class="bg-white border-t border-slate-200 p-3 text-center text-[10px] text-slate-400">Kaynak: resmigazete.gov.tr · otomatik tarama GitHub Actions ile</footer>
+</div>
+
+<!-- Ekle modalı -->
+<div id="addModal" class="fixed inset-0 bg-black/50 hidden z-50 items-center justify-center p-4">
+  <div class="bg-white w-full max-w-sm rounded-2xl p-5 shadow-2xl space-y-3 text-xs">
+    <div class="flex justify-between items-center border-b pb-3">
+      <h3 class="text-sm font-bold">Yeni kayıt ekle</h3>
+      <button id="btnCloseAdd" class="text-slate-400"><i class="fa-solid fa-xmark text-lg"></i></button>
+    </div>
+    <label class="block font-semibold text-slate-600">Tarih<input type="date" id="newDate" class="mt-1 w-full p-2 border rounded-lg font-normal"></label>
+    <label class="block font-semibold text-slate-600">Kategori
+      <select id="newCategory" class="mt-1 w-full p-2 border rounded-lg bg-white font-normal">
+        <option value="mevzuat">Mevzuat Yeniliği</option><option value="atama">Atama Kararı</option><option value="ilan">İlan / Sınav</option>
+      </select></label>
+    <label class="block font-semibold text-slate-600">Başlık<input id="newTitle" class="mt-1 w-full p-2 border rounded-lg font-normal"></label>
+    <label class="block font-semibold text-slate-600">Kurum<input id="newInstitution" class="mt-1 w-full p-2 border rounded-lg font-normal"></label>
+    <label class="block font-semibold text-slate-600">Özet<textarea id="newSummary" rows="2" class="mt-1 w-full p-2 border rounded-lg font-normal"></textarea></label>
+    <label class="block font-semibold text-slate-600">Bağlantı<input id="newUrl" value="https://www.resmigazete.gov.tr/" class="mt-1 w-full p-2 border rounded-lg font-normal"></label>
+    <div class="flex gap-2 pt-1">
+      <button id="btnCancelAdd" class="w-1/2 bg-slate-100 text-slate-600 py-2 rounded-lg font-semibold">İptal</button>
+      <button id="btnSaveAdd" class="w-1/2 bg-teal-700 text-white py-2 rounded-lg font-semibold">Kaydet</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ====== AYARLAR ======
+   GitHub kullanıcı adınızı yazın. Sayfa GitHub Pages'te (aynı depoda) açılırsa
+   önce göreli yol denenir; olmazsa RAW adresi kullanılır. */
+const GITHUB_USER = "resmigazete";
+const GITHUB_REPO = "saglik-arsiv";
+const JSON_FILE   = "saglik_arsiv_2026.json";
+const BRANCH      = "main";
+/* ====================== */
+
+const LS_DATA = "rg_saglik_data_v9";
+const LS_DELETED = "rg_saglik_deleted_v9";
+const CATS = {
+  mevzuat: ["Mevzuat Yeniliği", "bg-blue-50 text-blue-700 border-blue-200"],
+  atama:   ["Atama Kararı",    "bg-amber-50 text-amber-700 border-amber-200"],
+  ilan:    ["İlan / Sınav",    "bg-emerald-50 text-emerald-700 border-emerald-200"],
+};
+const $ = id => document.getElementById(id);
+const trLower = s => (s || "").replace(/İ/g, "i").replace(/I/g, "ı").toLowerCase();
+const MONTHS = ["ocak","şubat","mart","nisan","mayıs","haziran","temmuz","ağustos","eylül","ekim","kasım","aralık"];
+
+let items = [], deleted = new Set(), activeCat = "all";
+
+function lsGet(k, d) { try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : d; } catch { return d; } }
+function lsSet(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} }
+
+function esc(s) { const d = document.createElement("div"); d.textContent = s == null ? "" : String(s); return d.innerHTML; }
+function safeUrl(u) { try { const x = new URL(u, "https://www.resmigazete.gov.tr/"); return /^https?:$/.test(x.protocol) ? x.href : "#"; } catch { return "#"; } }
+function fmtDate(iso) { const p = (iso || "").split("-"); return p.length === 3 ? `${p[2]}.${p[1]}.${p[0]}` : (iso || ""); }
+function keyOf(it) { return `${it.date}|${it.category}|${trLower(it.title).replace(/\s+/g, " ").trim()}`; }
+
+function normalize(it) {
+  const cat = CATS[it.category] ? it.category : "mevzuat";
+  return {
+    id: it.id ?? Date.now() + Math.floor(Math.random() * 1000),
+    category: cat,
+    categoryLabel: CATS[cat][0],
+    badgeColor: CATS[cat][1],
+    title: String(it.title || "").trim(),
+    institution: String(it.institution || "").trim(),
+    summary: String(it.summary || "").trim(),
+    date: String(it.date || "").slice(0, 10),
+    url: it.url || "https://www.resmigazete.gov.tr/",
+    source: it.source || "manual",
+  };
+}
+
+function mergeIn(list) {
+  const have = new Map(items.map(i => [keyOf(i), i]));
+  let added = 0;
+  for (const raw of list) {
+    if (!raw || !raw.title) continue;
+    const it = normalize(raw);
+    const k = keyOf(it);
+    if (deleted.has(k) || have.has(k)) continue;
+    items.push(it); have.set(k, it); added++;
+  }
+  items.sort((a, b) => b.date.localeCompare(a.date) || String(b.id).localeCompare(String(a.id)));
+  lsSet(LS_DATA, items);
+  return added;
+}
+
+function remoteUrls() {
+  const urls = [JSON_FILE + "?t=" + Date.now()];
+  if (!GITHUB_USER.startsWith("resmigazete")) {
+    urls.push(`https://raw.githubusercontent.com/${GITHUB_USER}/${GITHUB_REPO}/${BRANCH}/${JSON_FILE}?t=${Date.now()}`);
+  }
+  return urls;
+}
+
+async function refresh(showMsg) {
+  $("status").textContent = "GitHub'dan güncelleniyor…";
+  for (const u of remoteUrls()) {
+    try {
+      const r = await fetch(u, { cache: "no-store" });
+      if (!r.ok) continue;
+      const data = await r.json();
+      if (!Array.isArray(data)) continue;
+      const added = mergeIn(data);
+      render();
+      $("status").textContent = `Güncellendi: ${new Date().toLocaleString("tr-TR")} · ${added} yeni kayıt`;
+      return;
+    } catch (e) { /* sıradaki adresi dene */ }
+  }
+  render();
+  $("status").textContent = GITHUB_USER.startsWith("resmigazete")
+    ? "Çevrimdışı mod: index.html içindeki GITHUB_USER değerini doldurun."
+    : "Sunucuya ulaşılamadı; cihazdaki kayıtlar gösteriliyor.";
+}
+
+function matchesQuery(it, q) {
+  if (!q) return true;
+  const [y, m, d] = it.date.split("-");
+  const monthName = MONTHS[(+m || 1) - 1] || "";
+  const hay = trLower(`${it.title} ${it.institution} ${it.summary} ${it.date} ${d}.${m}.${y} ${+d} ${monthName}`);
+  return trLower(q).split(/\s+/).filter(Boolean).every(w => hay.includes(w)); // tüm kelimeler
+}
+
+function filtered() {
+  const q = $("searchInput").value.trim(), from = $("dateFrom").value, to = $("dateTo").value;
+  return items.filter(it =>
+    (activeCat === "all" || it.category === activeCat) &&
+    (!from || it.date >= from) && (!to || it.date <= to) &&
+    matchesQuery(it, q));
+}
+
+function renderCats() {
+  const c = k => k === "all" ? items.length : items.filter(i => i.category === k).length;
+  const defs = [["all", "Tümü"], ["mevzuat", "Mevzuat"], ["atama", "Atama"], ["ilan", "İlanlar"]];
+  $("catBar").innerHTML = defs.map(([k, l]) =>
+    `<button data-cat="${k}" class="px-3 py-1.5 rounded-full text-xs font-medium ${k === activeCat ? "bg-teal-700 text-white shadow-sm" : "bg-slate-100 text-slate-600"}">${l} (${c(k)})</button>`).join("");
+}
+
+function render() {
+  renderCats();
+  const list = filtered(), box = $("list");
+  if (!list.length) {
+    box.innerHTML = `<div class="bg-white p-8 rounded-xl text-center border border-slate-200 text-xs text-slate-500">Kriterlere uygun kayıt yok.</div>`;
+    return;
+  }
+  box.innerHTML = list.map(it => `
+    <article class="bg-white p-4 rounded-xl shadow-sm border border-slate-200">
+      <div class="flex justify-between items-center mb-2">
+        <span class="text-[10px] font-semibold px-2.5 py-0.5 rounded-full border ${esc(it.badgeColor)}">${esc(it.categoryLabel)}</span>
+        <span class="flex items-center gap-2 text-[10px] text-slate-400">
+          <span><i class="fa-regular fa-calendar-days mr-1"></i>${esc(fmtDate(it.date))}</span>
+          <button data-del="${esc(it.id)}" class="text-slate-300 hover:text-red-500 p-1" title="Sil"><i class="fa-solid fa-trash-can"></i></button>
+        </span>
+      </div>
+      <h2 class="text-xs font-bold leading-snug mb-1"><a href="${esc(safeUrl(it.url))}" target="_blank" rel="noopener noreferrer" class="hover:text-teal-600">${esc(it.title)}</a></h2>
+      ${it.institution ? `<p class="text-[10px] font-semibold text-teal-700 mb-1.5"><i class="fa-solid fa-building-columns mr-1"></i>${esc(it.institution)}</p>` : ""}
+      ${it.summary ? `<p class="text-[11px] text-slate-600 leading-relaxed mb-2">${esc(it.summary)}</p>` : ""}
+      <a href="${esc(safeUrl(it.url))}" target="_blank" rel="noopener noreferrer" class="text-[10px] font-bold text-teal-600">Orijinalini gör <i class="fa-solid fa-arrow-right text-[9px]"></i></a>
+    </article>`).join("");
+}
+
+/* --- olaylar --- */
+$("catBar").addEventListener("click", e => { const b = e.target.closest("[data-cat]"); if (b) { activeCat = b.dataset.cat; render(); } });
+$("list").addEventListener("click", e => {
+  const b = e.target.closest("[data-del]"); if (!b) return;
+  const it = items.find(i => String(i.id) === b.dataset.del);
+  if (it && confirm("Bu kayıt silinsin mi? (Sonraki güncellemelerde geri gelmez)")) {
+    deleted.add(keyOf(it)); lsSet(LS_DELETED, [...deleted]);
+    items = items.filter(i => i !== it); lsSet(LS_DATA, items); render();
+  }
+});
+["searchInput", "dateFrom", "dateTo"].forEach(id => $(id).addEventListener("input", render));
+$("btnClearDates").onclick = () => { $("dateFrom").value = ""; $("dateTo").value = ""; render(); };
+$("btnRefresh").onclick = () => refresh(true);
+
+const openAdd = () => { $("newDate").value = new Date().toISOString().slice(0, 10); $("addModal").classList.replace("hidden", "flex"); };
+const closeAdd = () => $("addModal").classList.replace("flex", "hidden");
+$("btnAdd").onclick = openAdd; $("btnCloseAdd").onclick = closeAdd; $("btnCancelAdd").onclick = closeAdd;
+$("btnSaveAdd").onclick = () => {
+  const title = $("newTitle").value.trim();
+  if (!title) return alert("Başlık gerekli.");
+  const it = { category: $("newCategory").value, title, institution: $("newInstitution").value, summary: $("newSummary").value,
+               date: $("newDate").value, url: $("newUrl").value, source: "manual" };
+  deleted.delete(keyOf(normalize(it))); lsSet(LS_DELETED, [...deleted]);
+  mergeIn([it]); render(); closeAdd();
+  ["newTitle", "newInstitution", "newSummary"].forEach(id => $(id).value = "");
+};
+
+$("btnExport").onclick = () => {
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(new Blob([JSON.stringify(items, null, 2)], { type: "application/json" }));
+  a.download = "rg_saglik_arsiv_yedek.json"; document.body.appendChild(a); a.click(); a.remove();
+};
+$("importFile").addEventListener("change", e => {
+  const f = e.target.files[0]; if (!f) return;
+  const rd = new FileReader();
+  rd.onload = () => {
+    try {
+      const data = JSON.parse(rd.result);
+      if (!Array.isArray(data)) throw 0;
+      const n = mergeIn(data); render(); alert(`${n} yeni kayıt eklendi.`);
+    } catch { alert("Geçersiz JSON dosyası."); }
+    e.target.value = "";
+  };
+  rd.readAsText(f, "UTF-8");
+});
+
+/* --- başlangıç --- */
+deleted = new Set(lsGet(LS_DELETED, []));
+items = lsGet(LS_DATA, []).map(normalize);
+render();
+refresh(false);
+</script>
+</body>
+</html>

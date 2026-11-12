@@ -1,0 +1,33 @@
+name: Resmi Gazete Saglik Scraper
+
+on:
+  schedule:
+    # Türkiye saati 01:00 (UTC 22:00) - Resmi Gazete 00:00'dan sonra yayımlanır
+    - cron: '0 22 * * *'
+  workflow_dispatch:
+    inputs:
+      days:
+        description: 'Geriye dönük kaç gün taransın (ilk doldurma için örn. 320)'
+        required: false
+        default: '2'
+
+permissions:
+  contents: write
+
+jobs:
+  run-scraper:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+      - run: pip install -r requirements.txt
+      - name: Tara
+        run: python scraper.py --days "${{ github.event.inputs.days || '2' }}"
+      - name: Arşivi depoya kaydet
+        uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          commit_message: "Otomatik günlük Resmi Gazete sağlık taraması"
+          file_pattern: "saglik_arsiv_2026.json"
