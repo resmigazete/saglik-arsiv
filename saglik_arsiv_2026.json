@@ -1,6 +1,6 @@
 [
     {
-        "id": 1795733204347,
+        "id": 1795819677499,
         "category": "atama",
         "categoryLabel": "Atama Kararı",
         "badgeColor": "bg-amber-50 text-amber-700 border-amber-200",
@@ -9,5 +9,16 @@
         "summary": "Resmi Gazete arşivinden otomatik tarandı.",
         "date": "2026-11-25",
         "url": "https://www.resmigazete.gov.tr/eskiler/2026/11/20261125-3.pdf"
+    },
+    {
+        "id": 1795819679953,
+        "category": "atama",
+        "categoryLabel": "Atama Kararı",
+        "badgeColor": "bg-amber-50 text-amber-700 border-amber-200",
+        "title": "��Cumhurba�kanl��� Taraf�ndan Yap�lan Atamalar \r\nHakk�nda Kararlar (Karar: 2026/400, 401, 402, 403, 404, 405, 406, 407, 408)",
+        "institution": "T.C. Resmi Gazete",
+        "summary": "Resmi Gazete arşivinden otomatik tarandı.",
+        "date": "2026-11-27",
+        "url": "https://www.resmigazete.gov.tr/eskiler/2026/11/20261127-20.pdf"
     }
 ]
